@@ -3,6 +3,7 @@
 
 import sys
 import subprocess
+import sqlite3
 import socket
 from threading import Thread
 
@@ -25,7 +26,7 @@ else:
 class SvetlanaModel:
 
 	def __init__(self):
-		pass
+		self.db = sqlite3.connect('svetlana.sqlite3')
 
 
 	def demo_video(self, w):
@@ -42,52 +43,119 @@ class SvetlanaModel:
 		try:
 			p = subprocess.Popen([TTS, string], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		except OSError:
-			sys.exit(0)	
+			sys.exit(0)
+
+	def get_people(self):
+		c = self.db.cursor()
+		people = []
+		for row in c.execute("""SELECT id, name, surname FROM people"""):
+			people.append(row)
+		return people
+
+	def get_person(self, person_id):
+		c = self.db.cursor()
+		c.execute('SELECT id, name, surname, picture, bio FROM people WHERE id=:pid ', {"pid": person_id})
+		return c.fetchone()
+
+	def get_motd(self):
+		c = self.db.cursor()
+		c.execute('SELECT r1, r2, r3, r4 FROM motd ORDER BY RANDOM() LIMIT 1')
+		mo = c.fetchone()
+		try:
+			m1 = mo[0].encode('utf-8')
+		except AttributeError:
+			m1 = ""
+		try:
+			m2 = mo[1].encode('utf-8')
+		except AttributeError:
+			m2 = ""
+		try: 
+			m3 = mo[2].encode('utf-8')
+		except AttributeError:
+			m3 = ""
+		try:
+			m4 = mo[3].encode('utf-8')
+		except AttributeError:
+			m4 = ""
+		return (m1, m2, m3, m4)
+
 
 class SvetlanaView(urwid.Frame):
 	palette = [
 		('std', 'light green', 'black'), 
 		('alert', 'white', 'dark red'),
-		('btn', 'black', 'light green'),
-		('btn_select', 'dark gray', 'light green'),
+		('btn', 'light green', 'black'),
+		('btn_select', 'black', 'light green'),
 		]
 
 	def __init__(self, model):
 		self.model = model
 		urwid.Frame.__init__(self, None)
 		self.content_start()
-		self.set_header(self.frame_header())
+		self.model.launch_tts('ohai')
 
-	def content(self, widget_list):
-		self.set_body(urwid.AttrWrap(urwid.ListBox(urwid.SimpleListWalker(widget_list)), 'std'))
+	def content(self, widget_list, header=""):
+		self.set_body(urwid.AttrWrap(urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), header), 'std'))
+		self.frame_header()
 
-	def button(self, t, fn):
-		w = urwid.Button(t, fn)
-		w = urwid.AttrWrap(w, 'btn', 'btn_select')
+	def button(self, t, fn, user_data=None, style='btn', style_active='btn_select'):
+		w = urwid.Button(t, fn, user_data)
+		w = urwid.AttrWrap(w, style, style_active)
 		return w
 
 	def k(self, string):
 		lat = ('a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F', 'g', 'G', 'h', 'H', 'i', 'I', 'j', 'J', 'k', 'K', 'l', 'L', 'm', 'M', 'n', 'N', 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 's', 'S', 't', 'T', 'u', 'U', 'v', 'V', 'w', 'W', 'x', 'X', 'y', 'Y', 'z', 'Z',)
-		kyr = ('д', 'Д', 'в', 'B', 'c', 'C', 'd', 'D', 'э', 'Э', 'ғ', 'F', 'g', 'G', 'h', 'H', 'ї', 'I', 'j', 'J', 'к', 'Ҡ', 'l', 'L', 'м', 'M', 'и', 'И', 'o', 'O', 'p', 'Р', 'q', 'Q', 'я', 'Я', 's', 'S', 'т', 'T', 'u', 'U', 'v', 'V', 'ш', 'Ш', 'ж', 'Ж', 'ч', 'Ч', 'z', 'Z',)
+		kyr = ('a', 'Д', 'в', 'B', 'c', 'C', 'd', 'D', 'e', 'Э', 'ғ', 'F', 'g', 'G', 'h', 'H', 'ı', 'I', 'j', 'J', 'к', 'Ҡ', 'l', 'L', 'м', 'M', 'и', 'И', 'o', 'O', 'p', 'Р', 'q', 'Q', 'я', 'Я', 's', 'S', 'т', 'T', 'u', 'U', 'v', 'V', 'ш', 'Ш', 'ж', 'Ж', 'ч', 'Ч', 'z', 'Z',)
 		for i in range(len(lat)):
 			string = string.replace(lat[i], kyr[i])
 		return string
 
 	def content_start(self, w=None):
-		btn_launch = self.button(self.k("Launch video"), self.model.demo_video)
-		btn_register = self.button(self.k("Look up person"), self.content_register)
-		btn_quit = self.button("Quit", self.exit_svetlana)
-		self.content([btn_launch, btn_register, btn_quit])
+		btn_security = self.button(self.k("Umgebungsüberwachung"), self.content_security)
+		btn_register = self.button(self.k("Personenregister"), self.content_register)
+
+		btn_launch = self.button(self.k("dev: Demovideo"), self.model.demo_video)
+		btn_quit = self.button(self.k("dev: Beenden"), self.exit_svetlana)
+		self.content([btn_security, btn_register, urwid.Divider(), btn_launch, btn_quit], self.k("Svetlana CCCP Unionsnetz"))
 
 	def content_register(self, w=None):
-		self.content([self.button("Quit", self.exit_svetlana)])
+		c = [self.button(self.k("Zurück zu Übersicht"), self.content_start), urwid.Divider()]
+		for person in self.model.get_people():
+			label = "{0} {1}".format(person[1], person[2])
+			c.append(self.button(self.k(label), self.content_person, person[0]))
+		self.content(c, "Personenregister")
+
+	def content_security(self, w=None):
+		pass
+
+	def content_person(self, w, person_id):
+		c = [self.button(self.k("Zurück zum Personenregister"), self.content_register), urwid.Divider()]
+		person = urwid.Text(self.k("{0} {1}".format(self.model.get_person(person_id)[1], self.model.get_person(person_id)[2])))
+		c.append(person)
+		self.content(c, "Personenauskunft")
 
 	def frame_header(self):
-		return urwid.AttrWrap(urwid.Text("\n          --.\n        __  \\\\       _____           _   _   \n       / /   \\\\     /  ___|         | | | |  \n      / /\\   / )    \\ `--.__   _____| |_| | __ _ _ __   __ _ \n       ` \\\\ / /      `--. \\ \\ / / _ \\ __| |/ _` | '_ \\ / _` |\n    .-    \\\\ /      /\\__/ /\\ V /  __/ |_| | (_| | | | | (_| |\n   //\\\\___/\\\\       \\____/  \\_/ \\___|\\__|_|\\__,_|_| |_|\\__,_| \n  //  \\____/\\)      \n |/\n "), 'std')
+		motd = self.model.get_motd()
+		h01 = urwid.Text("                                                                               ")
+		h02 = urwid.Text("             --.                                                               ")
+		h03 = urwid.Text("           __  \\\\       _____           _   _                                  ")
+		h04 = urwid.Text("          / /   \\\\     /  ___|         | | | |                                  Gedanke des Moments:")
+		h05 = urwid.Text("         / /\\   / )    \\ `--.__   _____| |_| | __ _ _ __   __ _                {0}".format(self.k(motd[0])))
+		h06 = urwid.Text("          ` \\\\ / /      `--. \\ \\ / / _ \\ __| |/ _` | '_ \\ / _` |               {0}".format(self.k(motd[1])))
+		h07 = urwid.Text("       .-    \\\\ /      /\\__/ /\\ V /  __/ |_| | (_| | | | | (_| |               {0}".format(self.k(motd[2])))
+		h08 = urwid.Text("      //\\\\___/\\\\       \\____/  \\_/ \\___|\\__|_|\\__,_|_| |_|\\__,_|               {0}".format(self.k(motd[3])))
+		h09 = urwid.Text("     //  \\____/\\)                                                              ")
+		h10 = urwid.Text("    |/                                                                         ")
+		h11 = urwid.Text("                                                                               ")
+		c = [h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11]
+		self.set_header(urwid.AttrWrap(urwid.LineBox(urwid.Pile(c)), 'std'))
+
 
 	def exit_svetlana(self, w):
 		self.model.launch_tts("Auf Wiedersehen")
 		raise urwid.ExitMainLoop()
+
+
 
 
 class SvetlanaWeb(Thread):
@@ -111,17 +179,17 @@ class SvetlanaWeb(Thread):
 
 		@cherrypy.expose
 		def index(self):
-			return("Привет мир!")
+			return("Hello world")
 
 		@cherrypy.expose
 		def video(self, url):
 			self.model.launch_video(url)
-			return("Видео началось")
+			return("Playing video!")
 
 		@cherrypy.expose
 		def tts(self, string):
 			self.model.launch_tts(string)
-			return("Выступление началось!")
+			return("Speaking to you!")
 
 
 class SvetlanaController:
@@ -134,7 +202,6 @@ class SvetlanaController:
 
 	def run(self):
 		self.web.start()
-		self.model.launch_tts('Svetlana gestartet')
 		self.loop = urwid.MainLoop(self.view, self.view.palette)
 		self.loop.run()
 		self.web.stop()
