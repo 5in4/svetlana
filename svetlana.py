@@ -12,9 +12,15 @@ import cherrypy
 
 if sys.platform.startswith('linux'):
 	TTS = "espeak"
+	#try:
+	#	subprocess.Popen(['mbrola'])
+	#	TTS_ARGS = "-v mb-de5"
+	#except OSError:
+	TTS_ARGS = "-vmb-de5"
 	MPLAYER = "mplayer"
 elif sys.platform.startswith('darwin'):
 	TTS = "say"
+	TTS_ARGS = ""
 	MPLAYER = "mplayer"
 elif sys.platform.startswith('win32'):
 	TTS = "/path/to/espeak"
@@ -41,7 +47,7 @@ class SvetlanaModel:
 
 	def launch_tts(self, string):
 		try:
-			p = subprocess.Popen([TTS, string], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			p = subprocess.Popen([TTS, TTS_ARGS, string], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		except OSError:
 			sys.exit(0)
 
@@ -92,7 +98,7 @@ class SvetlanaView(urwid.Frame):
 		self.model = model
 		urwid.Frame.__init__(self, None)
 		self.content_start()
-		self.model.launch_tts('ohai')
+		self.model.launch_tts('Guten Tag Genosse. Dies ist das Svetlana CCCP Unionsnetz.')
 
 	def content(self, widget_list, header=""):
 		self.set_body(urwid.AttrWrap(urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), header), 'std'))
