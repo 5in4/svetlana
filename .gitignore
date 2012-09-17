@@ -1,3 +1,6 @@
+cherrypy/*
+urwid/*
+
 *.py[co]
 
 # Packages
