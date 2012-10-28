@@ -10,6 +10,8 @@ from threading import Thread
 import urwid
 import cherrypy
 
+OVERSCAN = True
+
 if sys.platform.startswith('linux'):
 	TTS = "espeak"
 	#try:
@@ -36,7 +38,7 @@ class SvetlanaModel:
 
 
 	def demo_video(self, w):
-		self.launch_video('http://praegnanz.de/html5video/player/video_SD.mp4')
+		self.launch_video('v1_720p.mp4')
 
 	def launch_video(self, url):
 		try:
@@ -101,7 +103,10 @@ class SvetlanaView(urwid.Frame):
 		self.model.launch_tts('Guten Tag Genosse. Dies ist das Svetlana CCCP Unionsnetz.')
 
 	def content(self, widget_list, header=""):
-		self.set_body(urwid.AttrWrap(urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), header), 'std'))
+		body_pile = urwid.AttrWrap(urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), header), 'std')		
+		if OVERSCAN:
+			body_pile = urwid.Padding(body_pile, align='left', width=('relative', 100), min_width=None, left=3, right=3)
+		self.set_body(body_pile)
 		self.frame_header()
 
 	def button(self, t, fn, user_data=None, style='btn', style_active='btn_select'):
@@ -142,19 +147,24 @@ class SvetlanaView(urwid.Frame):
 
 	def frame_header(self):
 		motd = self.model.get_motd()
-		h01 = urwid.Text("                                                                               ")
-		h02 = urwid.Text("             --.                                                               ")
-		h03 = urwid.Text("           __  \\\\       _____           _   _                                  ")
-		h04 = urwid.Text("          / /   \\\\     /  ___|         | | | |                                  Gedanke des Moments:")
-		h05 = urwid.Text("         / /\\   / )    \\ `--.__   _____| |_| | __ _ _ __   __ _                {0}".format(self.k(motd[0])))
-		h06 = urwid.Text("          ` \\\\ / /      `--. \\ \\ / / _ \\ __| |/ _` | '_ \\ / _` |               {0}".format(self.k(motd[1])))
-		h07 = urwid.Text("       .-    \\\\ /      /\\__/ /\\ V /  __/ |_| | (_| | | | | (_| |               {0}".format(self.k(motd[2])))
-		h08 = urwid.Text("      //\\\\___/\\\\       \\____/  \\_/ \\___|\\__|_|\\__,_|_| |_|\\__,_|               {0}".format(self.k(motd[3])))
-		h09 = urwid.Text("     //  \\____/\\)                                                              ")
-		h10 = urwid.Text("    |/                                                                         ")
-		h11 = urwid.Text("                                                                               ")
+		h01 = urwid.Text("                                                                          ")
+		h02 = urwid.Text("             --.                                                          ")
+		h03 = urwid.Text("           __  \\\\       _____           _   _                             ")
+		h04 = urwid.Text("          / /   \\\\     /  ___|         | | | |                             Gedanke des Moments:")
+		h05 = urwid.Text("         / /\\   / )    \\ `--.__   _____| |_| | __ _ _ __   __ _           {0}".format(self.k(motd[0])))
+		h06 = urwid.Text("          ` \\\\ / /      `--. \\ \\ / / _ \\ __| |/ _` | '_ \\ / _` |          {0}".format(self.k(motd[1])))
+		h07 = urwid.Text("       .-    \\\\ /      /\\__/ /\\ V /  __/ |_| | (_| | | | | (_| |          {0}".format(self.k(motd[2])))
+		h08 = urwid.Text("      //\\\\___/\\\\       \\____/  \\_/ \\___|\\__|_|\\__,_|_| |_|\\__,_|          {0}".format(self.k(motd[3])))
+		h09 = urwid.Text("     //  \\____/\\)                                                         ")
+		h10 = urwid.Text("    |/                                                                    ")
+		h11 = urwid.Text("                                                                          ")
 		c = [h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11]
-		self.set_header(urwid.AttrWrap(urwid.LineBox(urwid.Pile(c)), 'std'))
+
+		header_pile = urwid.AttrWrap(urwid.LineBox(urwid.Pile(c)), 'std')		
+		
+		if OVERSCAN:
+			header_pile = urwid.Padding(header_pile, align='left', width=('relative', 100), min_width=None, left=3, right=3)
+		self.set_header(header_pile)
 
 
 	def exit_svetlana(self, w):
@@ -203,14 +213,15 @@ class SvetlanaController:
 	def __init__(self):
 		self.model = SvetlanaModel()
 		self.web = SvetlanaWeb(self.model)
-		self.view = SvetlanaView(self.model)
-
+		self.view = SvetlanaView(self.model)		
+#self.view = urwid.Padding(SvetlanaView(self.model),align='left', width=('relative', 100), min_width=None, left=10, right=0)
+#self.view = urwid.Columns([SvetlanaView(self.model)], dividechars=0, focus_column=None, min_width=1, box_columns=None)
 
 	def run(self):
-		self.web.start()
+		#self.web.start()
 		self.loop = urwid.MainLoop(self.view, self.view.palette)
-		self.loop.run()
-		self.web.stop()
+		self.loop.run() 
+		#self.web.stop()
 		sys.exit(0)
 
 if __name__ == '__main__':
