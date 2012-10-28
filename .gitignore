@@ -1,6 +1,7 @@
 cherrypy/*
 urwid/*
 
+*.mp4
 *.py[co]
 
 # Packages
