@@ -65,6 +65,13 @@ class SvetlanaModel:
 		c.execute('SELECT id, name, surname, picture, bio FROM people WHERE id=:pid ', {"pid": person_id})
 		return c.fetchone()
 
+	def get_commands(self):
+		c  = self.db.cursor()
+		commands = []
+		for row in c.execute("""SELECT id, command FROM commands"""):
+			commands.append(row)
+		return commands
+
 	def get_motd(self):
 		c = self.db.cursor()
 		c.execute('SELECT r1, r2, r3, r4 FROM motd ORDER BY RANDOM() LIMIT 1')
@@ -124,26 +131,55 @@ class SvetlanaView(urwid.Frame):
 	def content_start(self, w=None):
 		btn_security = self.button(self.k("Umgebungsüberwachung"), self.content_security)
 		btn_register = self.button(self.k("Personenregister"), self.content_register)
+		btn_console = self.button(self.k("Steuerungskonsole"), self.content_console)
 
 		btn_launch = self.button(self.k("dev: Demovideo"), self.model.demo_video)
 		btn_quit = self.button(self.k("dev: Beenden"), self.exit_svetlana)
-		self.content([btn_security, btn_register, urwid.Divider(), btn_launch, btn_quit], self.k("Svetlana CCCP Unionsnetz"))
+		self.content([btn_security, btn_register, btn_console, urwid.Divider(), btn_launch, btn_quit], self.k("Svetlana CCCP Unionsnetz"))
 
 	def content_register(self, w=None):
 		c = [self.button(self.k("Zurück zu Übersicht"), self.content_start), urwid.Divider()]
 		for person in self.model.get_people():
 			label = "{0} {1}".format(person[1], person[2])
 			c.append(self.button(self.k(label), self.content_person, person[0]))
-		self.content(c, "Personenregister")
+		self.content(c, self.k("Personenregister"))
 
 	def content_security(self, w=None):
-		pass
+		h01 = urwid.Text("")
+		h02 = urwid.Text("     ____________________________________________________________________________________________________________")
+		h03 = urwid.Text("     |                                                                                                          |")
+		h04 = urwid.Text("")
+		h05 = urwid.Text("")
+		h06 = urwid.Text("")
+		h07 = urwid.Text("")
+		h08 = urwid.Text("")
+		h09 = urwid.Text("")
+		h10 = urwid.Text("")
+		h11 = urwid.Text("")
+		h12 = urwid.Text("")
+		h13 = urwid.Text("")
+		h14 = urwid.Text("")
+		h15 = urwid.Text("")
+		h16 = urwid.Text("")
+		h17 = urwid.Text("")
+		h18 = urwid.Text("")
+		h19 = urwid.Text("")
+		h20 = urwid.Text("     ____________________________________________________________________________________________________________")
+		c = [self.button(self.k("Zurück zu Übersicht"), self.content_start), urwid.Divider(), h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20]
+		self.content(c, self.k("Umgebungsüberwachung"))
 
 	def content_person(self, w, person_id):
 		c = [self.button(self.k("Zurück zum Personenregister"), self.content_register), urwid.Divider()]
 		person = urwid.Text(self.k("{0} {1}".format(self.model.get_person(person_id)[1], self.model.get_person(person_id)[2])))
 		c.append(person)
-		self.content(c, "Personenauskunft")
+		self.content(c, self.k("Personenauskunft"))
+
+	def content_console(self, w=None):
+		c = [self.button(self.k("Zurück zu Übersicht"), self.content_start), urwid.Divider()]
+		for command in self.model.get_commands():
+			label = ">> {0}".format(command[1])
+			c.append(urwid.Text(self.k(label)))
+		self.content(c, self.k("Bunkersteuerungskonsole"))
 
 	def frame_header(self):
 		motd = self.model.get_motd()
