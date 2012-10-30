@@ -14,11 +14,7 @@ OVERSCAN = True
 
 if sys.platform.startswith('linux'):
 	TTS = "espeak"
-	#try:
-	#	subprocess.Popen(['mbrola'])
-	#	TTS_ARGS = "-v mb-de5"
-	#except OSError:
-	TTS_ARGS = "-vmb-de5"
+	TTS_ARGS = "-vde+f2"
 	MPLAYER = "mplayer"
 elif sys.platform.startswith('darwin'):
 	TTS = "say"
@@ -38,7 +34,7 @@ class SvetlanaModel:
 
 
 	def demo_video(self, w):
-		self.launch_video('v1_720p.mp4')
+		self.launch_video('../svetlana-video/v3_720p.mp4')
 
 	def launch_video(self, url):
 		try:
@@ -93,6 +89,18 @@ class SvetlanaModel:
 		except AttributeError:
 			m4 = ""
 		return (m1, m2, m3, m4)
+		
+	def phase1(self):
+		self.launch_video("v1_720p.mp4")
+		
+	def phase2(self):
+		self.launch_video("v2_720p.mp4")
+
+	def phase3(self):
+		self.launch_video("v3_720p.mp4")
+		
+	def phase4(self):
+		self.launch_video("v4_720p.mp4")
 
 
 class SvetlanaView(urwid.Frame):
@@ -216,7 +224,7 @@ class SvetlanaWeb(Thread):
 		Thread.__init__(self)
 		self.daemon = True
 		self.model = model
-		cherrypy.config.update({'log.screen': False,})# 'server.socket_host': '0.0.0.0', 'server.socket_port': 80,})
+		cherrypy.config.update({'log.screen': False, 'server.socket_host': '192.168.0.4',})
 
 	def run(self):
 		cherrypy.quickstart(self.Routing(self.model))
@@ -242,7 +250,26 @@ class SvetlanaWeb(Thread):
 		def tts(self, string):
 			self.model.launch_tts(string)
 			return("Speaking to you!")
+		
+		@cherrypy.expose
+		def phase1(self):
+			self.model.phase1()
+			return("Phase1 started")
+		
+		@cherrypy.expose
+		def phase2(self):
+			self.model.phase2()
+			return("Phase2 started")
 
+		@cherrypy.expose
+		def phase3(self):
+			self.model.phase3()
+			return("Phase2 started")
+
+		@cherrypy.expose
+		def phase4(self):
+			self.model.phase4()
+			return("Phase4 started")
 
 class SvetlanaController:
 
@@ -250,14 +277,12 @@ class SvetlanaController:
 		self.model = SvetlanaModel()
 		self.web = SvetlanaWeb(self.model)
 		self.view = SvetlanaView(self.model)		
-#self.view = urwid.Padding(SvetlanaView(self.model),align='left', width=('relative', 100), min_width=None, left=10, right=0)
-#self.view = urwid.Columns([SvetlanaView(self.model)], dividechars=0, focus_column=None, min_width=1, box_columns=None)
 
 	def run(self):
-		#self.web.start()
+		self.web.start()
 		self.loop = urwid.MainLoop(self.view, self.view.palette)
 		self.loop.run() 
-		#self.web.stop()
+		self.web.stop()
 		sys.exit(0)
 
 if __name__ == '__main__':
